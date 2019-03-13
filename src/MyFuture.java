@@ -24,6 +24,7 @@ public class MyFuture<V>
 		while(!isDone())
 		{
 			// Wait until the task is done
+			//System.out.println("isDone Loop");
 		}
 
 
@@ -56,6 +57,7 @@ public class MyFuture<V>
 	public void setStatus(boolean status)
 	{
 		this.status = status;
+		System.out.println(this.status);
 	}
 
 

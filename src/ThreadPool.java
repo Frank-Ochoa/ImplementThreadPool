@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-@SuppressWarnings("Duplicates") public class ThreadPool<E, T>
+public class ThreadPool<E, T>
 {
 	private Lock pullLock;
 	private Lock addLock;
@@ -36,6 +36,10 @@ import java.util.concurrent.locks.ReentrantLock;
 			pool[i] = new Thread(new WorkManager(this.workQ, this.pullLock, this.addLock,
 					this.visibilityLock, this.shutdown, this.completedCount));
 		}
+		for(int i = 0; i < n; i++)
+		{
+			pool[i].run();
+		}
 
 	}
 
@@ -56,6 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 	private MyFuture submitWork(Object object)
 	{
+		System.out.println("submitWork got called");
 		if(!shutdown)
 		{
 			try
@@ -66,12 +71,14 @@ import java.util.concurrent.locks.ReentrantLock;
 				return task;
 			} finally
 			{
-				addLock.unlock();
 				pullLock.unlock();
+				addLock.unlock();
+				System.out.println("AFTER PULLLOCK UNLOCKED");
 			}
 		}
 		else
 		{
+			// No longer allowed to add to queue
 			return null;
 		}
 	}

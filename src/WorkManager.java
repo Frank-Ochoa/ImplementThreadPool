@@ -29,6 +29,7 @@ public class WorkManager implements Runnable
 		{
 			while (true)
 			{
+				System.out.println("got into work manager");
 				doWork();
 			}
 		}
@@ -43,11 +44,12 @@ public class WorkManager implements Runnable
 		}
 	}
 
+	// Don't want to run this method unless the pullLock is unlocked
 	private void doWork()
 	{
 		pullLock.lock();
 		addLock.lock();
-
+		System.out.println("A thread aquired the locks");
 		MyFuture<Object> future = workQ.remove();
 
 		if (!workQ.isEmpty())
@@ -76,6 +78,9 @@ public class WorkManager implements Runnable
 				future.setValue(y);
 				future.setStatus(true);
 				visibilityLock.unlock();
+
+				System.out.println("Status was set");
+
 
 			} catch (Exception e)
 			{

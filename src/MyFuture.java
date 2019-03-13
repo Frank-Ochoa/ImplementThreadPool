@@ -18,28 +18,31 @@ public class MyFuture<V>
 		// retrieve its result
 		// return its result or throw an exception
 		// while its not done, wait
-		// Possible bug and questions here
+		// TODO: This implementation of throwing the exception seems a bit hacky, so we should consider it
+		//		 but maybe it's what we need to do
 
 		while(!isDone())
 		{
 			// Wait until the task is done
 		}
 
-		try
-		{
+
 			if (task instanceof Runnable)
 			{
 				return null;
 			}
 			else if (task instanceof Callable)
 			{
-				return futureResult;
+				if(futureResult == null)
+				{
+					throw new MyExecutionException("Bad");
+				}
+				else
+				{
+					return futureResult;
+				}
 			}
-		}
-		catch (Exception e)
-		{
-			throw new MyExecutionException("Task threw an exception");
-		}
+
 
 		return null;
 	}

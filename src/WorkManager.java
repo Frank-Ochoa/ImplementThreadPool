@@ -79,7 +79,9 @@ public class WorkManager implements Runnable
 
 			} catch (Exception e)
 			{
-				e.printStackTrace();
+				visibilityLock.lock();
+				future.setValue(null);
+				visibilityLock.unlock();
 			}
 		}
 

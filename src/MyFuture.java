@@ -1,15 +1,26 @@
-import java.util.concurrent.Callable;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MyFuture<V>
 {
 	private V futureResult;
 	private Object task;
-	private boolean status;
+	private MyExecutionException myException;
+	private Lock setLock;
+	private Lock getLock;
+	// Problem here with this lock
+	private Lock taskDoneLock;
 
 	public MyFuture(Object task)
 	{
 		this.task = task;
-		this.status = false;
+		this.setLock = new ReentrantLock();
+		this.getLock = new ReentrantLock();
+		this.taskDoneLock = new ReentrantLock();
+		// Get lock begins locked, so that no other thread can get the result UNTIl its been set
+		//getLock.lock();
+		// taskDoneLock initially locked, and unlocked once setTaskDone() is called
+		taskDoneLock.lock();
 	}
 
 	public V get() throws MyExecutionException
@@ -18,48 +29,66 @@ public class MyFuture<V>
 		// retrieve its result
 		// return its result or throw an exception
 		// while its not done, wait
-		// TODO: This implementation of throwing the exception seems a bit hacky, so we should consider it
-		//		 but maybe it's what we need to do
 
-		while(!isDone())
+		// Polling is bad do a lock here
+
+		// In theory, some thread calls future.get(), the if calls isDone(); which is locked out initially by the taskDoneLock.
+		// The thread then waits until it can acquire this lock, which can only be unlocked when another thread
+		// calls the setTaskDone() method which in turn unlocks the taskDoneLock. The setTaskDone() method
+		// will only be invoked once setValue() and setMyException() have been already been called, ensuring
+		// that if a value was returned, it's been set, and if an exception was thrown, its been set.
+		if(isDone())
 		{
-			// Wait until the task is done
-			//System.out.println("isDone Loop");
-		}
-
-
-			if (task instanceof Runnable)
+			try
 			{
-				return null;
-			}
-			else if (task instanceof Callable)
-			{
-				if(futureResult == null)
+				getLock.lock();
+				setLock.lock();
+
+				if (myException == null)
 				{
 					throw new MyExecutionException("Bad");
 				}
+
+				if (task instanceof Runnable)
+				{
+					return null;
+				}
 				else
 				{
-					return futureResult;
+					// Doing this, because technically, I think that the unlock will go before the return
+					V result = futureResult;
+					return result;
 				}
+			} finally
+			{
+				getLock.unlock();
+				setLock.unlock();
 			}
-
+		}
 
 		return null;
+
 	}
 
 	public void setValue(V result)
 	{
+		setLock.lock();
 		this.futureResult = result;
+		setLock.unlock();
 	}
 
-
-	public void setStatus(boolean status)
+	public void setTaskDone()
 	{
-		this.status = status;
-		System.out.println(this.status);
+		taskDoneLock.unlock();
 	}
 
+
+	public void setMyException(MyExecutionException myException)
+	{
+		setLock.lock();
+		this.myException = myException;
+		setLock.unlock();
+	}
 
 	public Object getTask()
 	{
@@ -69,6 +98,13 @@ public class MyFuture<V>
 
 	public boolean isDone()
 	{
-		return status;
+		System.out.println("Before isDone");
+		// So then this isDone should only get to the return, once setStatus was called
+		taskDoneLock.lock();
+
+		System.out.println("After its acquired the taskDoneLock");
+		// Task has finished, and everything should be set, now allow get to be called on it
+		getLock.unlock();
+		return true;
 	}
 }

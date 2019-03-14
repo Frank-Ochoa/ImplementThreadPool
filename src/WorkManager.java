@@ -1,96 +1,84 @@
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 
 public class WorkManager implements Runnable
 {
+	// Have a runnable that is a marker task that gets put on the queue when shut down is called
+
 	private Queue<MyFuture> workQ;
 	private Lock pullLock;
 	private Lock addLock;
-	private Lock visibilityLock;
 	private boolean shutdown;
 	private AtomicInteger completedCount;
 
-	public WorkManager(Queue<MyFuture> workQ, Lock pullLock, Lock addLock, Lock visibilityLock, boolean shutdown,
+	public WorkManager(Queue<MyFuture> workQ, Lock pullLock, Lock addLock, boolean shutdown,
 			AtomicInteger completedCount)
 	{
 		this.workQ = workQ;
 		this.pullLock = pullLock;
 		this.addLock = addLock;
-		this.visibilityLock = visibilityLock;
 		this.shutdown = shutdown;
 		this.completedCount = completedCount;
 	}
 
 	@Override public void run()
 	{
-		if (!shutdown)
+		System.out.println("Got into work manager");
+
+		while (true)
 		{
-			while (true)
+			//	doWork();
+
+			pullLock.lock();
+			addLock.lock();
+			System.out.println("A thread aquired the locks");
+			MyFuture<Object> future = workQ.remove();
+
+			if (!workQ.isEmpty())
 			{
-				System.out.println("got into work manager");
-				doWork();
+				pullLock.unlock();
 			}
-		}
-		// shutdown has been flagged as true
-		else
-		{
-			// do all that above until the workQ is empty
-			while(!workQ.isEmpty())
+
+			addLock.unlock();
+
+			Object task = future.getTask();
+
+			// Put inside if of Runnable, so both dont conflict
+			if (task instanceof ExitTask)
 			{
-				doWork();
+				System.out.println("task was instance of ExistTask");
+				//	((ExitTask) task).run();
+				return;
+
 			}
-		}
-	}
-
-	// Don't want to run this method unless the pullLock is unlocked
-	private void doWork()
-	{
-		pullLock.lock();
-		addLock.lock();
-		System.out.println("A thread aquired the locks");
-		MyFuture<Object> future = workQ.remove();
-
-		if (!workQ.isEmpty())
-		{
-			pullLock.unlock();
-		}
-
-		addLock.unlock();
-
-		Object task = future.getTask();
-
-		if (task instanceof Runnable)
-		{
-			((Runnable) task).run();
-			visibilityLock.lock();
-			future.setStatus(true);
-			visibilityLock.unlock();
-		}
-		if (task instanceof Callable)
-		{
-			try
+			if (task instanceof Runnable)
 			{
-				Object y = ((Callable) task).call();
-				// Need to lock/unlock to act as a memory fence, and propagate changes out to other threads
-				visibilityLock.lock();
-				future.setValue(y);
-				future.setStatus(true);
-				visibilityLock.unlock();
-
-				System.out.println("Status was set");
-
-
-			} catch (Exception e)
-			{
-				visibilityLock.lock();
-				future.setValue(null);
-				visibilityLock.unlock();
+				((Runnable) task).run();
+			/*future.setValue(null);
+			future.setTaskDone();*/
 			}
-		}
+			if (task instanceof Callable)
+			{
+				try
+				{
+					// Set the value of the future to w/e object the call method returned
+					//future.setValue(((Callable) task).call());
 
-		// Increment the number of completed tasks
-		completedCount.getAndIncrement();
+				} catch (Exception e)
+				{
+					// pass on the exception
+					//future.setMyException(null);
+				}
+
+				//future.setTaskDone();
+
+			}
+
+			// Increment the number of completed tasks
+			completedCount.getAndIncrement();
+		}
 	}
 }

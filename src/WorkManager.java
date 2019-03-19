@@ -9,11 +9,11 @@ public class WorkManager implements Runnable
 	// Have a runnable that is a marker task that gets put on the queue when shut down is called
 
 	private Queue<MyFuture> workQ;
-	private Lock pullLock;
+	private FIFOMutex pullLock;
 	private Lock addLock;
 	private AtomicInteger completedCount;
 
-	public WorkManager(Queue<MyFuture> workQ, Lock pullLock, Lock addLock,
+	public WorkManager(Queue<MyFuture> workQ, FIFOMutex pullLock, Lock addLock,
 			AtomicInteger completedCount)
 	{
 		this.workQ = workQ;
@@ -63,7 +63,7 @@ public class WorkManager implements Runnable
 				} catch (Exception e)
 				{
 					// pass on the exception
-					future.setMyException(null);
+					future.setMyException();
 				}
 
 			}

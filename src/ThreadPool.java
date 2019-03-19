@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadPool<E, T>
 {
-	private Lock pullLock;
+	private FIFOMutex pullLock;
 	private Lock addLock;
 	private boolean shutdown;
 	private Thread[] pool;
@@ -17,7 +17,7 @@ public class ThreadPool<E, T>
 
 	public ThreadPool(int n)
 	{
-		this.pullLock = new Mutex();
+		this.pullLock = new FIFOMutex();
 		// Lock the lock initially so that the threads are waiting right when it starts
 		pullLock.lock();
 

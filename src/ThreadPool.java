@@ -13,13 +13,11 @@ public class ThreadPool<E, T>
 	private Thread[] pool;
 	private Queue<MyFuture> workQ;
 	private AtomicInteger completedCount;
-	// Experimental, probably stupid way of shutting down in WorkManager
-	private AtomicInteger exitTaskCount;
 	private int numThreads;
 
 	public ThreadPool(int n)
 	{
-		this.pullLock = new ReentrantLock();
+		this.pullLock = new Mutex();
 		// Lock the lock initially so that the threads are waiting right when it starts
 		pullLock.lock();
 
@@ -29,7 +27,6 @@ public class ThreadPool<E, T>
 
 		this.completedCount = new AtomicInteger(0);
 
-		this.exitTaskCount = new AtomicInteger(0);
 		this.numThreads = n;
 
 		this.workQ = new LinkedList();
@@ -37,8 +34,9 @@ public class ThreadPool<E, T>
 		this.pool = new Thread[n];
 		for (int i = 0; i < n; i++)
 		{
+
 			pool[i] = new Thread(
-					new WorkManager(this.workQ, this.pullLock, this.addLock, this.shutdown, this.completedCount));
+					new WorkManager(this.workQ, this.pullLock, this.addLock, this.completedCount));
 		}
 		for (int i = 0; i < n; i++)
 		{
@@ -96,17 +94,24 @@ public class ThreadPool<E, T>
 	public void shutdown()
 	{
 
+		// These tasks will act as markers on the Queue and when all have been taken off, means to shutdown the ThreadPool
 		this.shutdown = true;
 
-		// These tasks will act as markers on the Queue and when all have been taken off, means to shutdown the ThreadPool
+
+		// Add the exist tasks to the workQ
 		for (int i = 0; i < numThreads; i++)
 		{
-			submitWork(new ExitTask());
+			try
+			{
+				addLock.lock();
+				MyFuture<ExitTask> exitTask = new MyFuture<>(new ExitTask());
+				workQ.add(exitTask);
+			} finally
+			{
+				addLock.unlock();
+				pullLock.unlock();
+			}
 		}
-
-		// Potentially can lock/unlock the submit methods depending on if shutdown() has been called
-		// OR JUST locks the addLock
-		//shutDownLock.lock();
 	}
 
 	public int getTaskCount()

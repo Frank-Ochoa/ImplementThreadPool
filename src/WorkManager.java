@@ -11,16 +11,14 @@ public class WorkManager implements Runnable
 	private Queue<MyFuture> workQ;
 	private Lock pullLock;
 	private Lock addLock;
-	private boolean shutdown;
 	private AtomicInteger completedCount;
 
-	public WorkManager(Queue<MyFuture> workQ, Lock pullLock, Lock addLock, boolean shutdown,
+	public WorkManager(Queue<MyFuture> workQ, Lock pullLock, Lock addLock,
 			AtomicInteger completedCount)
 	{
 		this.workQ = workQ;
 		this.pullLock = pullLock;
 		this.addLock = addLock;
-		this.shutdown = shutdown;
 		this.completedCount = completedCount;
 	}
 
@@ -30,11 +28,10 @@ public class WorkManager implements Runnable
 
 		while (true)
 		{
-			//	doWork();
-
 			pullLock.lock();
 			addLock.lock();
 			System.out.println("A thread aquired the locks");
+
 			MyFuture<Object> future = workQ.remove();
 
 			if (!workQ.isEmpty())
@@ -46,34 +43,28 @@ public class WorkManager implements Runnable
 
 			Object task = future.getTask();
 
-			// Put inside if of Runnable, so both dont conflict
 			if (task instanceof ExitTask)
 			{
 				System.out.println("task was instance of ExistTask");
-				//	((ExitTask) task).run();
 				return;
-
 			}
 			if (task instanceof Runnable)
 			{
 				((Runnable) task).run();
-			/*future.setValue(null);
-			future.setTaskDone();*/
+				future.setValue(null);
 			}
 			if (task instanceof Callable)
 			{
 				try
 				{
 					// Set the value of the future to w/e object the call method returned
-					//future.setValue(((Callable) task).call());
+					future.setValue(((Callable) task).call());
 
 				} catch (Exception e)
 				{
 					// pass on the exception
-					//future.setMyException(null);
+					future.setMyException(null);
 				}
-
-				//future.setTaskDone();
 
 			}
 

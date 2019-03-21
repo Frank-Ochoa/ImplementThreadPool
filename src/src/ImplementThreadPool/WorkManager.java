@@ -13,10 +13,10 @@ public class WorkManager implements Runnable
 
 	private Queue<MyFuture> workQ;
 	private Semaphore pullLock;
-	private Semaphore addLock;
+	private Mutex addLock;
 	private AtomicInteger completedCount;
 
-	public WorkManager(Queue<MyFuture> workQ, Semaphore pullLock, Semaphore addLock,
+	public WorkManager(Queue<MyFuture> workQ, Semaphore pullLock, Mutex addLock,
 			AtomicInteger completedCount)
 	{
 		this.workQ = workQ;
@@ -42,7 +42,7 @@ public class WorkManager implements Runnable
 
 			try
 			{
-				addLock.acquire();
+				addLock.lock();
 			} catch (InterruptedException e)
 			{
 				e.printStackTrace();
@@ -50,7 +50,7 @@ public class WorkManager implements Runnable
 
 			MyFuture<Object> future = workQ.remove();
 
-			addLock.release();
+			addLock.unlock();
 
 			Object task = future.getTask();
 

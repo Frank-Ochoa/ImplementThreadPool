@@ -5,13 +5,11 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadPool<E, T>
 {
 	private Semaphore pullLock;
-	private Semaphore addLock;
+	private Mutex addLock;
 	private boolean shutdown;
 	private Thread[] pool;
 	private Queue<MyFuture> workQ;
@@ -23,7 +21,7 @@ public class ThreadPool<E, T>
 		// Lock the lock initially so that the threads are waiting right when it starts
 		this.pullLock = new Semaphore(0);
 
-		this.addLock = new Semaphore(1);
+		this.addLock = new Mutex();
 
 		this.shutdown = false;
 
@@ -74,13 +72,13 @@ public class ThreadPool<E, T>
 
 		try
 		{
-			addLock.acquire();
+			addLock.lock();
 			MyFuture task = new MyFuture<>(object);
 			workQ.add(task);
 			return task;
 		} finally
 		{
-			addLock.release();
+			addLock.unlock();
 			pullLock.release();
 
 		}
@@ -101,13 +99,13 @@ public class ThreadPool<E, T>
 		{
 			try
 			{
-				addLock.acquire();
+				addLock.lock();
 				MyFuture<ExitTask> exitTask = new MyFuture<>(new ExitTask());
 				workQ.add(exitTask);
 			} finally
 			{
+				addLock.unlock();
 				pullLock.release();
-				addLock.release();
 			}
 		}
 	}

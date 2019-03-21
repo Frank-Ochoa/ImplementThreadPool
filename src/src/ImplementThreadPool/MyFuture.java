@@ -7,20 +7,21 @@ public class MyFuture<V>
 	private V futureResult;
 	private Object task;
 	private MyExecutionException myException;
-	private Semaphore setLock;
+	private Mutex setLock;
 	private boolean status;
 
 	public MyFuture(Object task) throws InterruptedException
 	{
 		this.task = task;
-		this.setLock = new Semaphore(0);
+		this.setLock = new Mutex();
+		this.setLock.lock();
 		this.status = false;
 	}
 
 	public V get() throws MyExecutionException, InterruptedException
 	{
 
-		setLock.acquire();
+		setLock.lock();
 
 		if (myException != null)
 		{
@@ -39,14 +40,14 @@ public class MyFuture<V>
 	{
 		this.futureResult = result;
 		this.status = true;
-		setLock.release();
+		setLock.unlock();
 	}
 
 	public void setMyException(MyExecutionException myException)
 	{
 		this.myException = myException;
 		this.status = true;
-		setLock.release();
+		setLock.unlock();
 	}
 
 	public Object getTask()

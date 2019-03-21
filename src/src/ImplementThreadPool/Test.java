@@ -1,51 +1,51 @@
-package ImplementThreadPool;
+package ImplementThreadPool.ImplementThreadPool.src.src.ImplementThreadPool;
 
 import java.util.LinkedList;
 import java.util.List;
 
 public class Test
 {
-	public static void main(String[] args) throws InterruptedException
-	{
-		for(int j = 0; j < 10_000; j++)
-		{
-			ThreadPool threadPool = new ThreadPool();
 
-			List<MyFuture<Integer>> futures = new LinkedList<>();
+    public static void main(String[] args) throws InterruptedException
+    {
+        for (int j = 0; j < 10_000; j++)
+        {
+            ThreadPool threadPool = new ThreadPool();
 
-			for (int i = 0; i < 100; i++)
-			{
-				try
-				{
-					futures.add(threadPool.submit(new ToyRunnable(1)));
-				} catch (InterruptedException e)
-				{
+            List<MyFuture<Integer>> futures = new LinkedList<>();
 
-					e.printStackTrace();
-				}
-			}
+            for (int i = 0; i < 100; i++)
+            {
+                try
+                {
+                    futures.add(threadPool.submit(new ToyCallable(1)));
+                    futures.add(threadPool.submit(new ToyRunnable(1)));
+                } catch (InterruptedException e)
+                {
 
-			int y = 0;
+                    e.printStackTrace();
+                }
+            }
 
-			//Thread.sleep(500000);
+            int y = 0;
 
-			for (MyFuture<Integer> x : futures)
-			{
-				try
-				{
-					y += x.get();
-				} catch (MyExecutionException e)
-				{
-					e.printStackTrace();
-				}
-			}
+            //Thread.sleep(500000);
+            for (MyFuture<Integer> x : futures)
+            {
+                try
+                {
+                    x.get();
+                } catch (MyExecutionException e)
+                {
+                    e.printStackTrace();
+                }
+            }
 
-			threadPool.shutdown();
-			futures.add(threadPool.submit(new ToyRunnable(1)));
+            threadPool.shutdown();
+            futures.add(threadPool.submit(new ToyCallable(1)));
 
-
-			System.out.println(threadPool.getTaskCount());
-			System.out.println(y);
-		}
-	}
+            System.out.println(threadPool.getTaskCount());
+            System.out.println(y);
+        }
+    }
 }

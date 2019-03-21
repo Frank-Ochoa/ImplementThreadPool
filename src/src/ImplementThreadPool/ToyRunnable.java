@@ -1,23 +1,26 @@
-package ImplementThreadPool;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package ImplementThreadPool.ImplementThreadPool.src.src.ImplementThreadPool;
 
-import java.util.concurrent.Callable;
-
-public class ToyRunnable implements Callable<Integer>
+/**
+ *
+ * @author palmerchaplin
+ */
+public class ToyRunnable implements Runnable
 {
-	private int i;
+    private int i;
+    
+    public ToyRunnable(int i)
+    {
+        this.i = i;
+    }
 
-	public ToyRunnable(int i)
-	{
-		this.i = i;
-	}
-
-	/*@Override public void run()
-	{
-		System.out.println(i);
-	}
-*/
-	@Override public Integer call() throws Exception
-	{
-		return i;
-	}
+    @Override
+    public void run()
+    {
+    }
+    
 }
